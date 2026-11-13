@@ -38,6 +38,12 @@ jobs:
           done
           [ "$found" = 1 ]
 
+      - name: Patch nullability for hidden-API jar
+        run: |
+          F=app/src/main/java/dev/naijun/dununlocker/data/ApnManager.kt
+          sed -i 's/\.getTelephonyServiceManager()$/&!!/' "$F"
+          grep -n "getTelephonyServiceManager" "$F"
+
       - name: Build debug APK
         run: ./gradlew assembleDebug --no-daemon
 
