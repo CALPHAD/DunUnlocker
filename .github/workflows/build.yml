@@ -1,0 +1,33 @@
+name: Build APK
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Install Android SDK platform 37
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-37" > /dev/null
+
+      - name: Replace android.jar with hidden-API version
+        run: |
+          curl -fL -o "$ANDROID_HOME/platforms/android-37/android.jar" \
+            https://raw.githubusercontent.com/Reginer/aosp-android-jar/master/android-37/android.jar
+
+      - name: Build debug APK
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DunUnlocker-debug
+          path: app/build/outputs/apk/debug/*.apk
