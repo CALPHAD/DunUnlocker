@@ -15,17 +15,31 @@ jobs:
           java-version: 21
 
       - name: Install Android SDK platform 37
-        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-37" > /dev/null
+        run: |
+          SDKM="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$SDKM" --install "platforms;android-37.0" > /dev/null \
+            || yes | "$SDKM" --install "platforms;android-37" > /dev/null \
+            || echo "sdkmanager could not install it; Gradle will try next"
+          chmod +x gradlew
+          if ! ls -d "$ANDROID_HOME"/platforms/android-37* > /dev/null 2>&1; then
+            ./gradlew :app:compileDebugKotlin --no-daemon || true
+          fi
+          ls "$ANDROID_HOME/platforms"
 
       - name: Replace android.jar with hidden-API version
         run: |
-          curl -fL -o "$ANDROID_HOME/platforms/android-37/android.jar" \
-            https://raw.githubusercontent.com/Reginer/aosp-android-jar/master/android-37/android.jar
+          found=0
+          for d in "$ANDROID_HOME"/platforms/android-37*; do
+            [ -d "$d" ] || continue
+            curl -fL -o "$d/android.jar" \
+              https://raw.githubusercontent.com/Reginer/aosp-android-jar/master/android-37/android.jar
+            echo "replaced: $d"
+            found=1
+          done
+          [ "$found" = 1 ]
 
       - name: Build debug APK
-        run: |
-          chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon
+        run: ./gradlew assembleDebug --no-daemon
 
       - uses: actions/upload-artifact@v4
         with:
